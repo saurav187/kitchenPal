@@ -1,4 +1,3 @@
-// app/(tabs)/settings.tsx
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import React from "react";
@@ -21,7 +20,7 @@ export default function Settings() {
     <View className="flex-1 bg-white items-center justify-center px-6">
       <Text className="text-2xl font-bold text-gray-800 mb-6">Settings</Text>
       <Text className="text-gray-600 mb-10 text-center">
-        Manage your account or log out of SmartPantry.
+        Manage your account or log out of Smart Pantry.
       </Text>
 
       <Pressable

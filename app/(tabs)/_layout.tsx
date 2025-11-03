@@ -1,4 +1,3 @@
-// app/(tabs)/_layout.tsx
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import React, { useEffect, useState } from "react";
@@ -7,26 +6,19 @@ import { auth } from "../../firebaseConfig";
 
 export default function TabLayout() {
   const router = useRouter();
-  const [initializing, setInitializing] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        // if not logged in, redirect to login
-        router.replace("/login");
-      } else {
-        // if logged in and current route is login/index, ensure we are in tabs
-        // do nothing here — user can navigate within tabs
-      }
-      if (initializing) setInitializing(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) router.replace("/");
+      setLoading(false);
     });
-
-    return () => unsub();
+    return unsubscribe;
   }, []);
 
-  if (initializing) {
+  if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
       </View>
     );
@@ -39,14 +31,8 @@ export default function TabLayout() {
         tabBarLabelStyle: { fontWeight: "600" },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen name="pantry" options={{ title: "List", headerShown: true }} />
+      <Tabs.Screen name="home" options={{ title: "Home", headerShown: false }} />
+      <Tabs.Screen name="pantry" options={{ title: "Pantry", headerShown: true }} />
       <Tabs.Screen name="addItem" options={{ title: "Add Item", headerShown: true }} />
       <Tabs.Screen name="settings" options={{ title: "Settings", headerShown: true }} />
     </Tabs>

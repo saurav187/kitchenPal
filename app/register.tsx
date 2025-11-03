@@ -1,9 +1,8 @@
-// app/register.tsx
 import { AntDesign } from "@expo/vector-icons";
 import { Link, Stack, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { auth } from "../firebaseConfig";
 
 export default function Register() {
@@ -11,24 +10,40 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState(""); // 🟢 added error state
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
+    setError("");
+
     if (!email || !password || !confirm) {
-      Alert.alert("Please fill all fields");
+      setError("Please fill all fields");
       return;
     }
+
     if (password !== confirm) {
-      Alert.alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert("Success", "Account created!");
       router.replace("/login");
     } catch (err: any) {
-      Alert.alert("Registration failed", err.message || String(err));
+      let message = "Registration failed. Please try again.";
+      if (err.code === "auth/email-already-in-use")
+        message = "This email is already registered.";
+      else if (err.code === "auth/invalid-email")
+        message = "Invalid email format.";
+      else if (err.code === "auth/weak-password")
+        message = "Weak password. Try a stronger one.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -52,20 +67,25 @@ export default function Register() {
             onChangeText={setEmail}
           />
           <TextInput
-            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg"
+            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg mb-6"
             placeholder="Password"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
           <TextInput
-            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg"
+            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg mb-6"
             placeholder="Confirm Password"
             secureTextEntry
             value={confirm}
             onChangeText={setConfirm}
           />
         </View>
+
+        {/* 🟠 Inline error message */}
+        {error ? (
+          <Text className="text-red-500 text-base mb-4 text-center">{error}</Text>
+        ) : null}
 
         <Pressable
           onPress={handleRegister}
@@ -89,7 +109,8 @@ export default function Register() {
         <Link href="/login" asChild>
           <Pressable>
             <Text className="text-dark-100 text-base font-medium">
-              Already have an account? <Text className="underline font-semibold">Sign in</Text>
+              Already have an account?{" "}
+              <Text className="underline font-semibold">Sign in</Text>
             </Text>
           </Pressable>
         </Link>
