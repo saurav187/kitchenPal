@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import React, { useEffect, useState } from "react";
@@ -29,12 +30,71 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: "#4CAF50",
         tabBarLabelStyle: { fontWeight: "600" },
+        headerShown: false,
       }}
     >
-      <Tabs.Screen name="home" options={{ title: "Home", headerShown: false }} />
-      <Tabs.Screen name="pantry" options={{ title: "Pantry", headerShown: true }} />
-      <Tabs.Screen name="addItem" options={{ title: "Add Item", headerShown: true }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings", headerShown: true }} />
+      {/* Home */}
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Pantry */}
+      <Tabs.Screen
+        name="pantry"
+        options={{
+          headerShown: false,
+          title: "Pantry",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "cube" : "cube-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Add Item */}
+      <Tabs.Screen
+        name="addItem"
+        options={{
+          title: "Add Item",
+          headerShown: true,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "add-circle" : "add-circle-outline"}
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Profile */}
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: "community",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

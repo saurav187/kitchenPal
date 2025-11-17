@@ -1,14 +1,21 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import React, { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput
+  TextInput,
+  View,
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -17,40 +24,36 @@ export default function AddItem() {
   const [quantity, setQuantity] = useState("");
   const [expiry, setExpiry] = useState("");
   const [showPicker, setShowPicker] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleSave = async () => {
-    if (!itemName.trim()) {
-      Alert.alert("Missing Field", "Please enter an item name.");
-      return;
-    }
-    if (isNaN(Number(quantity)) || Number(quantity) <= 0) {
-      Alert.alert("Invalid Quantity", "Quantity must be a positive number.");
-      return;
-    }
-    if (!expiry.trim()) {
-      Alert.alert("Missing Field", "Please select an expiry date.");
-      return;
-    }
+    if (!itemName.trim()) return setSuccessMessage("Please enter an item name.");
+    if (isNaN(Number(quantity)) || Number(quantity) <= 0)
+      return setSuccessMessage("Quantity must be a positive number.");
+    if (!expiry.trim()) return setSuccessMessage("Please select an expiry date.");
 
-    // ✅ Check that expiry is after today's date
+    // ✅ Check expiry date must be in future
     const today = new Date();
     const expiryDate = new Date(expiry);
-    today.setHours(0, 0, 0, 0); // ignore time part
-    if (expiryDate <= today) {
-      Alert.alert(
-        "Invalid Date",
-        "Expiry date must be after today's date."
-      );
-      return;
-    }
+    today.setHours(0, 0, 0, 0);
+    if (expiryDate <= today)
+      return setSuccessMessage("Expiry date must be after today.");
 
     try {
       const user = auth.currentUser;
-      if (!user) {
-        Alert.alert("Error", "You must be logged in to add items.");
-        return;
-      }
+      if (!user) return setSuccessMessage("You must be logged in.");
 
+      const q = query(
+        collection(db, "pantryItems"),
+        where("userId", "==", user.uid),
+        where("itemName", "==", itemName.trim())
+      );
+
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty)
+        return setSuccessMessage("This item already exists.");
+
+      // ✅ ADD ITEM
       await addDoc(collection(db, "pantryItems"), {
         userId: user.uid,
         itemName: itemName.trim(),
@@ -59,15 +62,18 @@ export default function AddItem() {
         createdAt: Timestamp.now(),
       });
 
-      // Clear fields after save
+      // ✅ Clear fields
       setItemName("");
       setQuantity("");
       setExpiry("");
 
-      Alert.alert("Success", "Item saved successfully!");
-    } catch (err: unknown) {
-      console.error("Error saving item:", err);
-      Alert.alert("Error", "Failed to save item. Please try again.");
+      // ✅ Show success message for 2 seconds
+      setSuccessMessage("✅ Item saved successfully!");
+      setTimeout(() => setSuccessMessage(""), 2000);
+
+    } catch (err) {
+      console.error(err);
+      setSuccessMessage("Error saving item. Try again.");
     }
   };
 
@@ -85,7 +91,6 @@ export default function AddItem() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 56 }}>
-        <Text className="text-2xl font-bold text-gray-800 mb-6">Add Item</Text>
 
         <TextInput
           value={itemName}
@@ -102,7 +107,6 @@ export default function AddItem() {
           className="w-full px-4 py-4 bg-[#E8F5E9] rounded-xl text-lg mb-5"
         />
 
-        {/* ✅ Web fallback and mobile picker */}
         {Platform.OS === "web" ? (
           <TextInput
             value={expiry}
@@ -138,6 +142,16 @@ export default function AddItem() {
         >
           <Text className="text-white text-lg font-bold">Save Item</Text>
         </Pressable>
+
+        {/* ✅ Success or Error Message */}
+        {successMessage !== "" && (
+          <View className="mt-4">
+            <Text className="text-center text-green-600 font-semibold">
+              {successMessage}
+            </Text>
+          </View>
+        )}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );

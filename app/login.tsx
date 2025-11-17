@@ -1,4 +1,3 @@
-import { AntDesign } from "@expo/vector-icons";
 import { Link, Stack, useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
@@ -45,7 +44,7 @@ export default function Login() {
 
         <View className="w-[105%] space-y-4 mb-6">
           <TextInput
-            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg"
+            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg mb-6"
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
@@ -73,13 +72,6 @@ export default function Login() {
         >
           <Text className="text-white text-lg font-bold">
             {loading ? "Logging in..." : "Login"}
-          </Text>
-        </Pressable>
-
-        <Pressable className="w-full py-4 bg-dark-10 rounded-xl flex-row items-center justify-center">
-          <AntDesign name="google" size={22} color="#374151" />
-          <Text className="text-gray-800 text-lg font-bold ml-2">
-            Continue with Google
           </Text>
         </Pressable>
       </View>

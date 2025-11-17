@@ -1,4 +1,3 @@
-import { AntDesign } from "@expo/vector-icons";
 import { Link, Stack, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
@@ -10,7 +9,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState(""); // 🟢 added error state
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -34,15 +33,20 @@ export default function Register() {
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.replace("/login");
+
+      // 🚀 NEW FLOW → Complete personal profile
+      router.replace("/profile");
+
     } catch (err: any) {
       let message = "Registration failed. Please try again.";
+
       if (err.code === "auth/email-already-in-use")
         message = "This email is already registered.";
       else if (err.code === "auth/invalid-email")
         message = "Invalid email format.";
       else if (err.code === "auth/weak-password")
         message = "Weak password. Try a stronger one.";
+
       setError(message);
     } finally {
       setLoading(false);
@@ -59,7 +63,7 @@ export default function Register() {
 
         <View className="w-[105%] space-y-4 mb-6">
           <TextInput
-            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg"
+            className="w-full px-4 py-5 bg-dark-10 rounded-xl text-lg mb-6"
             placeholder="Email"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -82,7 +86,6 @@ export default function Register() {
           />
         </View>
 
-        {/* 🟠 Inline error message */}
         {error ? (
           <Text className="text-red-500 text-base mb-4 text-center">{error}</Text>
         ) : null}
@@ -94,13 +97,6 @@ export default function Register() {
         >
           <Text className="text-white text-lg font-bold">
             {loading ? "Creating..." : "Register"}
-          </Text>
-        </Pressable>
-
-        <Pressable className="w-full py-4 bg-dark-10 rounded-xl flex-row items-center justify-center">
-          <AntDesign name="google" size={22} color="#374151" />
-          <Text className="text-gray-800 text-lg font-bold ml-2">
-            Sign up with Google
           </Text>
         </Pressable>
       </View>

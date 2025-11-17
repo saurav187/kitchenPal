@@ -24,12 +24,15 @@ type Item = {
   itemName: string;
   quantity: string;
   expiry: string;
+  isShared?: boolean;
 };
 
 export default function Pantry() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] =
+    useState<"all" | "near" | "expired">("all"); // removed 'shared'
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -39,56 +42,59 @@ export default function Pantry() {
       return;
     }
 
-    try {
-      const q = query(
-        collection(db, "pantryItems"),
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc")
-      );
+    const q = query(
+      collection(db, "pantryItems"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
 
-      const unsub = onSnapshot(
-        q,
-        (snapshot) => {
-          const arr: Item[] = snapshot.docs.map((d) => ({
-            id: d.id,
-            itemName: d.data().itemName || "Unnamed Item",
-            quantity: d.data().quantity || "N/A",
-            expiry: d.data().expiry || "N/A",
-          }));
-          setItems(arr);
-          setLoading(false);
-          setRefreshing(false);
-        },
-        (error) => {
-          console.error("Error fetching pantry items:", error);
-          Alert.alert("Error", "Failed to load pantry items.");
-          setLoading(false);
-          setRefreshing(false);
-        }
-      );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list: Item[] = snapshot.docs.map((d) => ({
+        id: d.id,
+        itemName: d.data().itemName || "",
+        quantity: d.data().quantity || "",
+        expiry: d.data().expiry || "",
+        isShared: d.data().isShared || false,
+      }));
 
-      return unsub;
-    } catch (err: any) {
-      console.error(err);
-      Alert.alert("Error", err.message || "Unexpected error occurred.");
+      // ❗ REMOVE SHARED ITEMS
+      const pantryOnly = list.filter((item) => item.isShared !== true);
+
+      setItems(pantryOnly);
       setLoading(false);
-    }
+      setRefreshing(false);
+    });
+
+    return unsub;
   }, []);
 
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, "pantryItems", id));
-      Alert.alert("Deleted", "Item removed successfully!");
     } catch (err: any) {
-      console.error(err);
-      Alert.alert("Error", err.message || "Failed to delete item.");
+      Alert.alert("Error", err.message);
     }
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+  const today = new Date();
+
+  // FILTERING
+  const filtered = items.filter((item) => {
+    const exp = new Date(item.expiry);
+
+    switch (filter) {
+      case "expired":
+        return exp < today;
+
+      case "near":
+        const diff =
+          (exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        return diff >= 0 && diff <= 3;
+
+      default:
+        return true;
+    }
+  });
 
   if (loading) {
     return (
@@ -100,43 +106,73 @@ export default function Pantry() {
   }
 
   return (
+
+    
+
     <ScrollView
-      className="flex-1 bg-white px-6 pt-14"
+      className="flex-1 bg-white px-6 pt-4 mt-10"
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => setRefreshing(true)}
+        />
       }
     >
-      <Text className="text-2xl font-bold text-gray-800 mb-6">My Pantry</Text>
+      
+      <View className="flex-row justify-between items-center mb-7">
+        <Text className="text-3xl font-extrabold text-gray-800">
+          Inventory
+        </Text>
+      </View>
 
-      {items.length === 0 ? (
+
+      {/* FILTER BUTTONS */}
+      <View className="flex-row justify-between mb-6">
+        {["all", "near", "expired"].map((f) => (
+          <Pressable
+          key={f}
+          onPress={() => setFilter(f as any)}
+          className={`flex-1 mx-1 py-2 rounded-full border ${
+          filter === f ? "bg-[#4CAF50] border-[#4CAF50]" : "border-gray-300"
+        }`}
+      >
+      <Text
+        className={`text-center font-semibold ${
+          filter === f ? "text-white" : "text-gray-700"
+        }`}
+      >
+        {f === "all"
+          ? "All"
+          : f === "near"
+          ? "Near Expiry"
+          : "Expired"}
+      </Text>
+    </Pressable>
+  ))}
+</View>
+
+
+      {/* ITEMS */}
+      {filtered.length === 0 ? (
         <Text className="text-gray-500 text-center mt-20">
-          No items yet. Add your first item!
+          No items under this filter.
         </Text>
       ) : (
-        items.map((item) => (
+        filtered.map((item) => (
           <View
             key={item.id}
             className="flex-row justify-between items-center bg-[#F1F8E9] rounded-xl mb-4 p-4"
           >
             <View>
-              <Text className="text-lg font-semibold text-gray-800">
-                {item.itemName}
-              </Text>
-              <Text className="text-gray-600 text-sm">
-                Qty: {item.quantity}
-              </Text>
-              <Text className="text-[#388E3C] text-sm font-medium">
+              <Text className="text-lg font-semibold">{item.itemName}</Text>
+              <Text className="text-gray-600">Qty: {item.quantity}</Text>
+              <Text className="text-green-700 font-medium">
                 Exp: {item.expiry}
               </Text>
             </View>
 
             <Pressable
-              onPress={() =>
-                Alert.alert("Confirm Delete", "Are you sure?", [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Delete", onPress: () => handleDelete(item.id) },
-                ])
-              }
+              onPress={() => handleDelete(item.id)}
               className="bg-red-500 px-3 py-2 rounded-lg"
             >
               <Text className="text-white font-bold">Delete</Text>
